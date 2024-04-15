@@ -1,0 +1,7 @@
+- name: ":::: Create reports/ folder to save reports ::::"
+  run_once: yes
+  delegate_to: localhost
+  file:
+    path: "./reports"
+    state: directory
+  register: kpi_report_folder_reg

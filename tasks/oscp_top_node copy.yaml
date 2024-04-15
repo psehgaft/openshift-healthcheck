@@ -1,0 +1,6 @@
+---
+# Top infraestructure v0.1
+- name: ":::: OSCP top nodes ::::"
+  shell: "oc adm top node"
+  register: oscp_top_reg
+

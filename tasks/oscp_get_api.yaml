@@ -1,0 +1,6 @@
+---
+# Logging v0.1
+- name: ":::: OSCP get API ::::"
+  shell: "oc whoami --show-server"
+  register: oscp_get_api_reg
+

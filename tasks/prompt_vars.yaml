@@ -1,0 +1,11 @@
+---
+# tasks file for openshift-healthcheck/
+
+# Ask credentials to get a token at the api
+  vars_prompt:
+    - name: "oscp_user"
+      prompt: Enter your username
+
+    - name: "oscp_password"
+      prompt: Enter your password"
+      private: yes

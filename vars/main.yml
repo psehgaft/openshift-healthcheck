@@ -1,0 +1,22 @@
+---
+# vars file for openshift-healthcheck/
+oscp_api_url: "https://api.cluster-snbrh.snbrh.sandbox209.opentlc.com:6443"
+oscp_user: admin
+oscp_password: Zg5yTGeXxq27BY0I
+oscp_token: " "
+
+# CSS styling for navbar: menu width, failed/missing colors
+nav_width: 200px
+failed_style: 'color:orangered'
+missing_style: 'color:grey;text-decoration:line-through'
+
+# Email options
+send_email: false
+smtp_host: mail.yourcompany.com
+smtp_port: 25
+mail_from: "source@email.com"
+mail_to: "dest1@email.com,dest2@email.com"
+mail_subject: "Ansible KPI report"
+# Uncomment these if authentication is required
+#smtp_user:
+#smtp_pass:

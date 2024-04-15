@@ -1,0 +1,9 @@
+---
+# Logging v0.1
+- name: get master api
+  shell: "oc get nodes -o wide | awk '{print $1}'"
+  register: oscp_get_name_nodes_reg
+
+- name: get master api
+  shell: "oc get nodes -o wide | awk '{print $6}'"
+  register: oscp_get_ip_nodes_reg

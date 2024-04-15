@@ -1,0 +1,31 @@
+---
+# Logging v0.1
+- name: ":::: OSCP Login ::::"
+  shell: "oc login --username={{ vars_oscp.oscp_user }} --password={{ vars_oscp.oscp_password }} --server={{ vars_oscp.oscp_api_url }} --insecure-skip-tls-verify=false"
+  register: oscp_login_reg
+
+- name: ":::: OSCP Get token ::::"
+  uri:
+    url: "{{ vars.oscp_api_url }}/oauth/authorize?response_type=token&client_id=openshift-challenging-client"
+    force_basic_auth: yes
+    user: "{{ vars_oscp.oscp_user }}"
+    password: "{{ vars_oscp.oscp_password }}"
+    headers:
+      X-Csrf-Token: 1
+    return_content: yes
+    validate_certs: no
+  register: oscp_login_token_reg
+
+- name: extract token
+  local_action: shell echo {{ oscp_login_token_reg }} | grep -oP "access_token=\K[^&]*"
+  register: oscp_token_reg
+  changed_when: false
+
+# Logging v0.2
+#- name: "Log in (obtain access token)"
+#  community.okd.openshift_auth:
+#    host: "{{ vars_oscp.oscp_api_url }}"
+#    username: "{{ vars_oscp.oscp_user }}"
+#    password: "{{ vars_oscp.oscp_password }}"
+#  validate_certs: false
+#  register: oscp_login_reg
