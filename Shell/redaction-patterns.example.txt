@@ -1,0 +1,7 @@
+# One regular expression per line.
+# Add customer names, host naming conventions, domains, people names, and non-Red Hat product/vendor names here before generating delivery reports.
+# Examples below are placeholders; replace them with real patterns for the engagement.
+example-customer-name
+example.internal.domain
+non-redhat-product-name
+non-redhat-vendor-name
