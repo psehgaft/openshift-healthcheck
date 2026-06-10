@@ -129,14 +129,14 @@ run_step() {
   local step_id="$1"
   local title="$2"
   log "${BLUE}${BOLD}[${step_id}] ${title}${RESET}"
-  echo "\n## ${step_id}. ${title}\n" >> "$REPORT"
+  echo "## ${step_id}. ${title}" >> "$REPORT"
 }
 
 print_file_tail() {
   local label="$1"
   local file="$2"
   local lines="${3:-20}"
-  echo "\n### ${label}\n" >> "$REPORT"
+  echo "### ${label}" >> "$REPORT"
   echo '```text' >> "$REPORT"
   tail -n "$lines" "$file" >> "$REPORT" 2>/dev/null || true
   echo '```' >> "$REPORT"
@@ -146,7 +146,7 @@ init_report() {
   cat > "$REPORT" <<EOF_REPORT
 # OpenShift General Health Report
 
-- **Generated:** $(date -Is)
+- **Generated:** $(date -u +"%Y-%m-%dT%H:%M:%S%z")
 - **Script version:** ${SCRIPT_VERSION}
 - **Output directory:** ${OUT_DIR}
 - **Mode:** deep=${DEEP}, must_gather=${RUN_MUST_GATHER}, pause=${PAUSE}
@@ -533,7 +533,7 @@ finalize_report() {
 
   cat > "$SUMMARY" <<EOF_SUMMARY
 OpenShift General Health Check
-Generated: $(date -Is)
+Generated: $(date -u +"%Y-%m-%dT%H:%M:%S%z")
 Overall status: ${OVERALL_STATUS}
 Critical findings: ${CRITICAL_COUNT}
 Warning findings: ${WARNING_COUNT}
