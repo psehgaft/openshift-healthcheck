@@ -129,14 +129,14 @@ run_step() {
   local step_id="$1"
   local title="$2"
   log "${BLUE}${BOLD}[${step_id}] ${title}${RESET}"
-  echo "\n## ${step_id}. ${title}\n" >> "$REPORT"
+  echo "## ${step_id}. ${title}" >> "$REPORT"
 }
 
 print_file_tail() {
   local label="$1"
   local file="$2"
   local lines="${3:-20}"
-  echo "\n### ${label}\n" >> "$REPORT"
+  echo "### ${label}" >> "$REPORT"
   echo '```text' >> "$REPORT"
   tail -n "$lines" "$file" >> "$REPORT" 2>/dev/null || true
   echo '```' >> "$REPORT"
