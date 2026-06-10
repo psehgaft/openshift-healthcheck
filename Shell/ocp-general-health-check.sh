@@ -146,7 +146,7 @@ init_report() {
   cat > "$REPORT" <<EOF_REPORT
 # OpenShift General Health Report
 
-- **Generated:** $(date -Is)
+- **Generated:** $(date -u +"%Y-%m-%dT%H:%M:%S%z")
 - **Script version:** ${SCRIPT_VERSION}
 - **Output directory:** ${OUT_DIR}
 - **Mode:** deep=${DEEP}, must_gather=${RUN_MUST_GATHER}, pause=${PAUSE}
@@ -533,7 +533,7 @@ finalize_report() {
 
   cat > "$SUMMARY" <<EOF_SUMMARY
 OpenShift General Health Check
-Generated: $(date -Is)
+Generated: $(date -u +"%Y-%m-%dT%H:%M:%S%z")
 Overall status: ${OVERALL_STATUS}
 Critical findings: ${CRITICAL_COUNT}
 Warning findings: ${WARNING_COUNT}
