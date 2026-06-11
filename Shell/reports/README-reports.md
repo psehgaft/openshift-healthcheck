@@ -13,5 +13,5 @@ Normally it is called automatically by `ocp-healthcheck.sh`.
 Manual usage:
 
 ```bash
-python3 reports/ocp-report-renderer.py --run-dir ./ocp-healthcheck-runs/<run-dir> --cluster-name non-prod-ocp --client-label KPMG
+python3 reports/ocp-report-renderer.py --run-dir ./ocp-healthcheck-runs/<run-dir> --cluster-name non-prod-ocp --client-label example
 ```

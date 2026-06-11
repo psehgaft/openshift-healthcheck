@@ -94,7 +94,7 @@ cp redaction-patterns.example.txt redaction-patterns.txt
 vi ocp-healthcheck.env
 vi redaction-patterns.txt
 oc login https://api.<cluster>:6443
-./latest/ocp-healthcheck-latest.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label KPMG
+./latest/ocp-healthcheck-latest.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label example
 ```
 
 ## Version-specific execution
@@ -102,25 +102,25 @@ oc login https://api.<cluster>:6443
 For OCP 4.18:
 
 ```bash
-./ocp-4.18/ocp418-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label KPMG
+./ocp-4.18/ocp418-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label example
 ```
 
 For OCP 4.19:
 
 ```bash
-./ocp-4.19/ocp419-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label KPMG
+./ocp-4.19/ocp419-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label example
 ```
 
 For OCP 4.20:
 
 ```bash
-./ocp-4.20/ocp420-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label KPMG
+./ocp-4.20/ocp420-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label example
 ```
 
 For OCP 4.21:
 
 ```bash
-./ocp-4.21/ocp421-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label KPMG
+./ocp-4.21/ocp421-healthcheck-full.sh --env-file ./ocp-healthcheck.env --cluster-name non-prod-ocp --client-label example
 ```
 
 ## Focused namespace review
@@ -131,7 +131,7 @@ To analyze specific namespaces only:
 ./latest/ocp-healthcheck-latest.sh \
   --env-file ./ocp-healthcheck.env \
   --cluster-name non-prod-ocp \
-  --client-label KPMG \
+  --client-label example \
   --target-namespaces apm0006923-non-prod,aiops-ns,model-serving-ns
 ```
 
