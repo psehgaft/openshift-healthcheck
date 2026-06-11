@@ -85,7 +85,7 @@ parse_common_args() {
 
 safe_name() { echo "$*" | sed -E 's#[^A-Za-z0-9_.-]+#_#g; s#_+#_#g; s#^_+|_+$##g'; }
 now_ts() { date +%Y%m%d-%H%M%S; }
-log() { printf '[%s] %s\n' "$(date -Is)" "$*" | tee -a "${RUN_LOG:-/dev/null}" >&2; }
+log() { printf '[%s] %s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "$*" | tee -a "${RUN_LOG:-/dev/null}" >&2; }
 has_jq() { command -v jq >/dev/null 2>&1; }
 has_python3() { command -v python3 >/dev/null 2>&1; }
 
@@ -167,16 +167,16 @@ run_cmd() {
     echo "# Section: $section"
     echo "# Label: $label"
     echo "# Command: $cmd"
-    echo "# Started: $(date -Is)"
+    echo "# Started: $(date -u +"%Y-%m-%dT%H:%M:%S%z")"
     echo
     timeout "${TIMEOUT_SECONDS}s" bash -lc "$cmd"
     rc=$?
     echo
-    echo "# Finished: $(date -Is)"
+    echo "# Finished: $(date -u +"%Y-%m-%dT%H:%M:%S%z")"
     echo "# Return code: $rc"
   } > "$outfile" 2>&1 || true
   redact_file "$outfile"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "$section" "$label" "$cmd" "$outfile" >> "$COMMAND_INDEX"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "$section" "$label" "$cmd" "$outfile" >> "$COMMAND_INDEX"
   csv_row "$section" "$label" "$outfile" >> "$EVIDENCE_CSV"
   echo "$outfile"
 }
@@ -188,7 +188,7 @@ run_json() {
   log "Collecting JSON [$section] $label"
   timeout "${TIMEOUT_SECONDS}s" bash -lc "$cmd" > "$outfile" 2>"${outfile}.err" || true
   redact_file "$outfile"; redact_file "${outfile}.err"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "$section" "$label" "$cmd" "$outfile" >> "$COMMAND_INDEX"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "$section" "$label" "$cmd" "$outfile" >> "$COMMAND_INDEX"
   csv_row "$section" "$label" "$outfile" >> "$EVIDENCE_CSV"
   echo "$outfile"
 }
@@ -213,7 +213,7 @@ get_namespaces() {
 write_basic_summary() {
   {
     echo "OpenShift Health Check Summary"
-    echo "Generated: $(date -Is)"
+    echo "Generated: $(date -u +"%Y-%m-%dT%H:%M:%S%z")"
     echo "Cluster: $CLUSTER_NAME_HINT"
     echo "Client label: $CLIENT_LABEL"
     echo "Run directory: $RUN_DIR"

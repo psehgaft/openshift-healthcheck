@@ -107,7 +107,7 @@ collect_all_api_resources() {
   local list="$TMP_DIR/api-resources.txt"
   oc api-resources --verbs=list -o name 2>/dev/null | sort -u > "$list" || true
   cp "$list" "$RAW_DIR/api-resources-list.txt"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "api-resources" "api-resources-list" "oc api-resources --verbs=list -o name" "$RAW_DIR/api-resources-list.txt" >> "$COMMAND_INDEX"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "api-resources" "api-resources-list" "oc api-resources --verbs=list -o name" "$RAW_DIR/api-resources-list.txt" >> "$COMMAND_INDEX"
   local res count=0
   while IFS= read -r res; do
     [[ -z "$res" ]] && continue
@@ -116,7 +116,7 @@ collect_all_api_resources() {
     local out="$RAW_DIR/api-resource-$(safe_name "$res").txt"
     timeout "${TIMEOUT_SECONDS}s" bash -lc "oc get ${res} -A -o wide --ignore-not-found 2>&1 || oc get ${res} -o wide --ignore-not-found 2>&1 || true" > "$out" 2>&1 || true
     redact_file "$out"
-    printf '%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "api-resource" "$res" "oc get $res -A -o wide" "$out" >> "$COMMAND_INDEX"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "api-resource" "$res" "oc get $res -A -o wide" "$out" >> "$COMMAND_INDEX"
   done < "$list"
 }
 
@@ -132,7 +132,7 @@ collect_crds() {
     local out="$RAW_DIR/crd-instances-$(safe_name "$crd").txt"
     timeout "${TIMEOUT_SECONDS}s" bash -lc "oc get ${crd} -A -o wide --ignore-not-found 2>&1 || oc get ${crd} -o wide --ignore-not-found 2>&1 || true" > "$out" 2>&1 || true
     redact_file "$out"
-    printf '%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "crd-instance" "$crd" "oc get $crd -A -o wide" "$out" >> "$COMMAND_INDEX"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%S%z")" "crd-instance" "$crd" "oc get $crd -A -o wide" "$out" >> "$COMMAND_INDEX"
   done < "$crds"
 }
 
