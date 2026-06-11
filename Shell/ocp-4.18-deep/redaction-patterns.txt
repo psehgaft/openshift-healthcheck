@@ -1,6 +1,0 @@
-# One regular expression per line. Matching text will be replaced with [REDACTED].
-# Keep this file close to the evidence bundle and review it before sharing outputs.
-[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
-([0-9]{1,3}\.){3}[0-9]{1,3}
-api(-int)?\.[A-Za-z0-9.-]+:6443
-[a-zA-Z0-9.-]+\.example\.com

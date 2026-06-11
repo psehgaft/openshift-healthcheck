@@ -1,0 +1,5 @@
+# One Perl-compatible regex per line. Examples:
+# customer\.example\.com
+# 10\.10\.10\.[0-9]+
+# (?i)password=[^\s]+
+# (?i)token[=:][^\s]+
