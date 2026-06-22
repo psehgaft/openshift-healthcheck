@@ -1,0 +1,75 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: headlamp-rbac-report-reader
+  labels:
+    app.kubernetes.io/name: headlamp-openshift-rbac-report
+    app.kubernetes.io/component: authorization-reporting
+rules:
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - users
+      - groups
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+    resourceNames:
+      - version
+    verbs:
+      - get
+---
+# Change this binding subject to the enterprise group that is allowed to
+# open and export the RBAC report from Headlamp.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-rbac-report-readers
+  labels:
+    app.kubernetes.io/name: headlamp-openshift-rbac-report
+    app.kubernetes.io/component: authorization-reporting
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: headlamp-rbac-report-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: headlamp-rbac-report-readers
