@@ -1,0 +1,17 @@
+apiVersion: observability.open-cluster-management.io/v1beta2
+kind: MultiClusterObservability
+metadata:
+  name: observability
+spec:
+  observabilityAddonSpec:
+    enableMetrics: true
+  storageConfig:
+    metricObjectStorage:
+      name: thanos-object-storage
+      key: thanos.yaml
+  # When the platform default StorageClass is not suitable, add:
+  # storageConfig:
+  #   storageClass: <supported-rwo-storage-class>
+  #   metricObjectStorage:
+  #     name: thanos-object-storage
+  #     key: thanos.yaml

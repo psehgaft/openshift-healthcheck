@@ -1,0 +1,15 @@
+# EXAMPLE PATCH CONTENT. Merge with the existing MultiClusterHub; do not
+# replace the complete resource without preserving current supported settings.
+apiVersion: operator.open-cluster-management.io/v1
+kind: MultiClusterHub
+metadata:
+  name: multiclusterhub
+  namespace: open-cluster-management
+spec:
+  availabilityConfig: High
+  nodeSelector:
+    node-role.kubernetes.io/infra: ""
+  tolerations:
+  - key: node-role.kubernetes.io/infra
+    operator: Exists
+    effect: NoSchedule

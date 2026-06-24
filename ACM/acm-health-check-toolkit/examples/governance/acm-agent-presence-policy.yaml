@@ -1,0 +1,65 @@
+# Inform-only policy that validates the ACM agent footprint on every cluster in
+# the built-in global ManagedClusterSet. Test in a non-production environment.
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: acm-agent-presence
+  namespace: open-cluster-management-global-set
+  annotations:
+    policy.open-cluster-management.io/categories: CM Configuration Management
+    policy.open-cluster-management.io/controls: CM-2 Baseline Configuration
+    policy.open-cluster-management.io/standards: NIST SP 800-53
+spec:
+  disabled: false
+  remediationAction: inform
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: acm-agent-presence
+      spec:
+        remediationAction: inform
+        severity: high
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: open-cluster-management-agent
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: open-cluster-management-agent-addon
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: operator.open-cluster-management.io/v1
+            kind: Klusterlet
+            metadata:
+              name: klusterlet
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: acm-agent-presence
+  namespace: open-cluster-management-global-set
+spec:
+  clusterSets:
+  - global
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: acm-agent-presence
+  namespace: open-cluster-management-global-set
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: acm-agent-presence
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: acm-agent-presence

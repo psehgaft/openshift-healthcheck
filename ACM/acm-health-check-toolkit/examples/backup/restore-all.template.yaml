@@ -1,0 +1,13 @@
+# DISASTER-RECOVERY TEMPLATE. Do not apply on the active production hub.
+# Use only on the designated recovery hub after validating backup ownership,
+# version compatibility, object storage access, and the activation sequence.
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Restore
+metadata:
+  name: restore-acm
+  namespace: open-cluster-management-backup
+spec:
+  cleanupBeforeRestore: None
+  veleroManagedClustersBackupName: latest
+  veleroCredentialsBackupName: latest
+  veleroResourcesBackupName: latest

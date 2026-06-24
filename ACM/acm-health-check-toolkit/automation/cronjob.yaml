@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: acm-health-check
+  namespace: acm-health-check
+  labels:
+    app.kubernetes.io/name: acm-health-check
+spec:
+  # Every Monday at 07:00. Change to the approved operations window.
+  schedule: "0 7 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 4
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: acm-health-check
+        spec:
+          serviceAccountName: acm-health-check
+          restartPolicy: Never
+          containers:
+          - name: check
+            image: registry.redhat.io/openshift4/ose-cli-rhel9:v4.18
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - /opt/acm-health-check/acm-health-check-lite.sh
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              runAsNonRoot: true
+            volumeMounts:
+            - name: script
+              mountPath: /opt/acm-health-check
+              readOnly: true
+          volumes:
+          - name: script
+            configMap:
+              name: acm-health-check-script
+              defaultMode: 0555

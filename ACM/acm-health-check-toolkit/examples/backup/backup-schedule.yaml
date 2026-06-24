@@ -1,0 +1,16 @@
+# Apply only after OADP, DataProtectionApplication, and BackupStorageLocation
+# are installed, reconciled, and tested.
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: BackupSchedule
+metadata:
+  name: schedule-acm
+  namespace: open-cluster-management-backup
+spec:
+  # Example RPO: one backup every six hours. Adjust through change control.
+  veleroSchedule: "0 */6 * * *"
+  # Example retention: 30 days. Align with legal, security, and recovery needs.
+  veleroTtl: 720h
+  # Preserves managed-service-account material to support automatic reimport
+  # after recovery. Review token-lifetime implications in the ACM docs.
+  useManagedServiceAccount: true
+  paused: false
