@@ -25,7 +25,8 @@
     cluster_query_timeout: 600
     require_complete_permissions: true
 
-    python_binary: python3
+    # Reuse the interpreter that launched Ansible unless explicitly overridden.
+    python_binary: "{{ ansible_playbook_python | default('python3') }}"
     oc_binary: oc
     openssl_binary: openssl
     certificate_audit_result: {}
@@ -56,6 +57,32 @@
           - item.stat.isreg
         fail_msg: "Required audit helper is missing: {{ item.item }}"
       loop: "{{ audit_helper_files.results }}"
+
+    - name: Check selected Python runtime
+      ansible.builtin.command:
+        argv:
+          - "{{ python_binary }}"
+          - -c
+          - "import sys; print('%s.%s.%s' % sys.version_info[:3])"
+      register: certificate_audit_python_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail when selected Python runtime is unavailable
+      ansible.builtin.fail:
+        msg: >-
+          Unable to execute python_binary={{ python_binary }}.
+          {{ certificate_audit_python_check.stderr | default('No diagnostic output') }}
+      when: certificate_audit_python_check.rc != 0
+
+    - name: Require Python 3.6 or later
+      ansible.builtin.assert:
+        that:
+          - certificate_audit_python_check.stdout | trim is version('3.6', '>=')
+        fail_msg: >-
+          Certificate audit requires Python 3.6 or later. Selected runtime:
+          {{ certificate_audit_python_check.stdout | trim }}
+      when: certificate_audit_python_check.rc == 0
 
     - name: Build certificate audit command
       ansible.builtin.set_fact:

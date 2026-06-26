@@ -6,7 +6,6 @@ certificate bodies. Only X.509 metadata, fingerprints, resource references, and
 findings are written to disk.
 """
 
-from __future__ import annotations
 
 import argparse
 import base64
@@ -53,17 +52,17 @@ STATUS_RANK = {
 FINDING_RANK = {"CRITICAL": 0, "WARNING": 1, "INFO": 2}
 
 
-def utc_now() -> dt.datetime:
+def utc_now() :
     return dt.datetime.now(dt.timezone.utc)
 
 
-def iso_utc(value: dt.datetime | None) -> str:
+def iso_utc(value) :
     if value is None:
         return ""
     return value.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def parse_openssl_date(value: str) -> dt.datetime | None:
+def parse_openssl_date(value) :
     value = (value or "").strip()
     if not value:
         return None
@@ -82,7 +81,7 @@ def parse_openssl_date(value: str) -> dt.datetime | None:
     return None
 
 
-def clean_text(value: Any, max_len: int = 20000) -> str:
+def clean_text(value, max_len = 20000) :
     if value is None:
         return ""
     text = str(value).replace("\x00", "")
@@ -91,21 +90,21 @@ def clean_text(value: Any, max_len: int = 20000) -> str:
     return text[:max_len]
 
 
-def md_escape(value: Any, max_len: int = 600) -> str:
+def md_escape(value, max_len = 600) :
     text = clean_text(value, max_len=max_len)
     return text.replace("|", "\\|")
 
 
-def safe_name(value: str) -> str:
+def safe_name(value) :
     value = re.sub(r"[^A-Za-z0-9._-]+", "-", value or "cluster")
     return value.strip("-.") or "cluster"
 
 
-def normalize_fingerprint(value: str) -> str:
+def normalize_fingerprint(value) :
     return re.sub(r"[^0-9A-Fa-f]", "", value or "").upper()
 
 
-def b64decode_loose(value: str | bytes) -> bytes | None:
+def b64decode_loose(value) :
     try:
         raw = value.encode() if isinstance(value, str) else value
         raw = re.sub(br"\s+", b"", raw)
@@ -117,15 +116,15 @@ def b64decode_loose(value: str | bytes) -> bytes | None:
         return None
 
 
-def file_mode(path: Path, mode: int = 0o600) -> None:
+def file_mode(path, mode = 0o600) :
     try:
         path.chmod(mode)
     except OSError:
         pass
 
 
-def nested_get(obj: dict[str, Any], *keys: str, default: Any = None) -> Any:
-    current: Any = obj
+def nested_get(obj, *keys, default = None) :
+    current = obj
     for key in keys:
         if not isinstance(current, dict) or key not in current:
             return default
@@ -138,7 +137,7 @@ class AuditError(RuntimeError):
 
 
 class CertificateAuditor:
-    def __init__(self, args: argparse.Namespace) -> None:
+    def __init__(self, args) :
         self.args = args
         self.now = utc_now()
         self.env = os.environ.copy()
@@ -147,24 +146,24 @@ class CertificateAuditor:
         if args.context:
             self.env["OC_CONTEXT"] = args.context
 
-        self.records: list[dict[str, Any]] = []
-        self.findings: list[dict[str, Any]] = []
-        self.endpoint_results: list[dict[str, Any]] = []
-        self.execution_messages: list[str] = []
-        self.source_fingerprint_seen: set[tuple[str, str]] = set()
-        self.report_dir: Path | None = None
+        self.records = []
+        self.findings = []
+        self.endpoint_results = []
+        self.execution_messages = []
+        self.source_fingerprint_seen = set()
+        self.report_dir = None
         self.temp_dir_obj = tempfile.TemporaryDirectory(prefix="ocp-cert-audit-")
         self.temp_dir = Path(self.temp_dir_obj.name)
         self.temp_counter = 0
 
-        self.service_cert_map: dict[tuple[str, str], str] = {}
-        self.cert_manager_map: dict[tuple[str, str], str] = {}
-        self.ingress_secret_map: dict[tuple[str, str], str] = {}
-        self.apiserver_named_secrets: dict[tuple[str, str], str] = {}
-        self.proxy_ca_configmaps: dict[tuple[str, str], str] = {}
-        self.cluster_metadata: dict[str, Any] = {}
+        self.service_cert_map = {}
+        self.cert_manager_map = {}
+        self.ingress_secret_map = {}
+        self.apiserver_named_secrets = {}
+        self.proxy_ca_configmaps = {}
+        self.cluster_metadata = {}
 
-    def log(self, message: str) -> None:
+    def log(self, message) :
         stamp = utc_now().strftime("%Y-%m-%dT%H:%M:%SZ")
         line = f"[{stamp}] {message}"
         self.execution_messages.append(line)
@@ -172,13 +171,13 @@ class CertificateAuditor:
 
     def add_finding(
         self,
-        severity: str,
-        category: str,
-        source: str,
-        message: str,
-        recommendation: str = "",
-        fingerprint: str = "",
-    ) -> None:
+        severity,
+        category,
+        source,
+        message,
+        recommendation = "",
+        fingerprint = "",
+    ) :
         self.findings.append(
             {
                 "severity": severity,
@@ -192,12 +191,12 @@ class CertificateAuditor:
 
     def run_command(
         self,
-        command: list[str],
+        command,
         *,
-        timeout: int = 120,
-        input_bytes: bytes | None = None,
-        sensitive: bool = False,
-    ) -> subprocess.CompletedProcess[bytes]:
+        timeout = 120,
+        input_bytes = None,
+        sensitive = False,
+    ) :
         display = command[0] if sensitive else " ".join(shlex.quote(v) for v in command)
         if not sensitive:
             self.log(f"Executing: {display}")
@@ -216,7 +215,7 @@ class CertificateAuditor:
         except FileNotFoundError as exc:
             raise AuditError(f"Required executable not found: {command[0]}") from exc
 
-    def oc_command(self, args: list[str], *, timeout: int = 120) -> list[str]:
+    def oc_command(self, args, *, timeout = 120) :
         command = [self.args.oc_binary]
         if self.args.context:
             command.extend(["--context", self.args.context])
@@ -225,12 +224,12 @@ class CertificateAuditor:
 
     def oc_text(
         self,
-        args: list[str],
+        args,
         *,
-        required: bool = False,
-        timeout: int = 120,
-        sensitive: bool = False,
-    ) -> str:
+        required = False,
+        timeout = 120,
+        sensitive = False,
+    ) :
         result = self.run_command(
             self.oc_command(args), timeout=timeout, sensitive=sensitive
         )
@@ -246,12 +245,12 @@ class CertificateAuditor:
 
     def oc_json(
         self,
-        args: list[str],
+        args,
         *,
-        required: bool = False,
-        timeout: int = 180,
-        sensitive: bool = False,
-    ) -> dict[str, Any]:
+        required = False,
+        timeout = 180,
+        sensitive = False,
+    ) :
         output = self.oc_text(
             args, required=required, timeout=timeout, sensitive=sensitive
         )
@@ -266,7 +265,7 @@ class CertificateAuditor:
             self.log(f"Unable to parse optional JSON from {' '.join(args[:4])}")
             return {}
 
-    def preflight(self) -> None:
+    def preflight(self) :
         self.log("Running local and cluster preflight checks")
         for binary in (self.args.oc_binary, self.args.openssl_binary):
             result = self.run_command([binary, "version"] if binary == self.args.oc_binary else [binary, "version"])
@@ -315,7 +314,7 @@ class CertificateAuditor:
             ("get", "nodes", ""),
             ("get", "certificatesigningrequests.certificates.k8s.io", ""),
         ]
-        denied: list[str] = []
+        denied = []
         for verb, resource, scope in required_permissions:
             args = ["auth", "can-i", verb, resource]
             if scope:
@@ -338,7 +337,7 @@ class CertificateAuditor:
                 "Re-run with a cluster-admin identity for a complete inventory.",
             )
 
-    def create_report_directory(self) -> None:
+    def create_report_directory(self) :
         root = Path(self.args.output_root).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
         root.chmod(0o700)
@@ -347,7 +346,7 @@ class CertificateAuditor:
         self.report_dir = root / f"certificate-audit-{name}-{stamp}"
         self.report_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
 
-    def build_management_maps(self) -> None:
+    def build_management_maps(self) :
         self.log("Building certificate ownership and management maps")
 
         services = self.oc_json(
@@ -441,12 +440,12 @@ class CertificateAuditor:
 
     def management_hint(
         self,
-        source_type: str,
-        namespace: str,
-        name: str,
-        key: str,
-        metadata: dict[str, Any] | None = None,
-    ) -> str:
+        source_type,
+        namespace,
+        name,
+        key,
+        metadata = None,
+    ) :
         metadata = metadata or {}
         annotations = metadata.get("annotations", {}) or {}
         labels = metadata.get("labels", {}) or {}
@@ -498,7 +497,7 @@ class CertificateAuditor:
             return "trusted CA bundle"
         return "unknown management owner"
 
-    def source_id(self, source: dict[str, Any]) -> str:
+    def source_id(self, source) :
         namespace = source.get("namespace", "")
         ns_part = f"{namespace}/" if namespace else ""
         return (
@@ -506,19 +505,19 @@ class CertificateAuditor:
             f"{source.get('name', '')}:{source.get('key', '')}"
         )
 
-    def openssl(self, args: list[str], *, timeout: int = 30) -> subprocess.CompletedProcess[bytes]:
+    def openssl(self, args, *, timeout = 30) :
         return self.run_command(
             [self.args.openssl_binary] + args, timeout=timeout, sensitive=True
         )
 
     def inspect_certificate(
         self,
-        cert_bytes: bytes,
-        source: dict[str, Any],
+        cert_bytes,
+        source,
         *,
-        inform: str = "PEM",
-        index: int = 1,
-    ) -> None:
+        inform = "PEM",
+        index = 1,
+    ) :
         self.temp_counter += 1
         raw_file = self.temp_dir / f"cert-{self.temp_counter}.bin"
         raw_file.write_bytes(cert_bytes)
@@ -570,7 +569,7 @@ class CertificateAuditor:
             return
 
         meta_lines = meta_result.stdout.decode(errors="replace").splitlines()
-        values: dict[str, str] = {}
+        values = {}
         for line in meta_lines:
             if "=" in line:
                 key, value = line.split("=", 1)
@@ -690,8 +689,8 @@ class CertificateAuditor:
         self.evaluate_record(record)
 
     def certificate_status(
-        self, not_before: dt.datetime | None, not_after: dt.datetime | None
-    ) -> tuple[str, int | str]:
+        self, not_before, not_after
+    ) :
         if not_before and self.now < not_before:
             return "NOT_YET_VALID", int((not_before - self.now).total_seconds() // 86400)
         if not_after is None:
@@ -706,7 +705,7 @@ class CertificateAuditor:
             return "WARNING", days
         return "OK", days
 
-    def evaluate_record(self, record: dict[str, Any]) -> None:
+    def evaluate_record(self, record) :
         status = record["status"]
         source = record["source_id"]
         fingerprint = record["fingerprint_sha256"]
@@ -795,17 +794,17 @@ class CertificateAuditor:
 
     def process_blob(
         self,
-        blob: bytes | str | None,
-        source: dict[str, Any],
+        blob,
+        source,
         *,
-        key_hint: str = "",
-        allow_nested: bool = True,
-    ) -> int:
+        key_hint = "",
+        allow_nested = True,
+    ) :
         if blob is None:
             return 0
         data = blob.encode() if isinstance(blob, str) else blob
         count = 0
-        material_hashes: set[str] = set()
+        material_hashes = set()
 
         blocks = PEM_CERT_RE.findall(data)
         for index, block in enumerate(blocks, start=1):
@@ -820,7 +819,7 @@ class CertificateAuditor:
 
         if allow_nested:
             text = data.decode(errors="ignore")
-            nested_values: list[tuple[str, str]] = []
+            nested_values = []
             nested_values.extend(KUBECONFIG_YAML_RE.findall(text))
             nested_values.extend(KUBECONFIG_JSON_RE.findall(text))
             nested_values.extend(("data-uri", value) for value in DATA_URI_RE.findall(text))
@@ -859,7 +858,7 @@ class CertificateAuditor:
             )
         return count
 
-    def process_local_kubeconfigs(self) -> None:
+    def process_local_kubeconfigs(self) :
         self.log("Scanning local kubeconfig client certificates and CA data")
         configured = self.args.kubeconfig or self.env.get("KUBECONFIG", "")
         paths = [Path(value).expanduser() for value in configured.split(os.pathsep) if value]
@@ -868,7 +867,7 @@ class CertificateAuditor:
         file_ref_re = re.compile(
             r"(?mi)^\s*(client-certificate|certificate-authority)\s*:\s*[\"']?([^\"'\r\n]+)[\"']?\s*$"
         )
-        seen_paths: set[Path] = set()
+        seen_paths = set()
         for kubeconfig_path in paths:
             try:
                 resolved = kubeconfig_path.resolve()
@@ -929,7 +928,7 @@ class CertificateAuditor:
                 }
                 self.process_blob(cert_content, ref_source, key_hint=field_name)
 
-    def process_secrets(self) -> None:
+    def process_secrets(self) :
         self.log("Scanning Secret objects in memory without persisting raw data")
         secrets = self.oc_json(
             ["get", "secrets", "-A", "-o", "json"],
@@ -966,7 +965,7 @@ class CertificateAuditor:
                 )
                 self.process_blob(decoded, source, key_hint=key)
 
-    def process_configmaps(self) -> None:
+    def process_configmaps(self) :
         self.log("Scanning ConfigMap certificate and trust-bundle content")
         configmaps = self.oc_json(
             ["get", "configmaps", "-A", "-o", "json"],
@@ -1011,7 +1010,7 @@ class CertificateAuditor:
                 )
                 self.process_blob(decoded, source, key_hint=key)
 
-    def process_routes(self) -> list[tuple[str, int, str]]:
+    def process_routes(self) :
         self.log("Scanning Route-embedded TLS certificate fields")
         routes = self.oc_json(
             ["get", "routes.route.openshift.io", "-A", "-o", "json"],
@@ -1019,7 +1018,7 @@ class CertificateAuditor:
             timeout=self.args.cluster_query_timeout,
             sensitive=True,
         )
-        endpoints: list[tuple[str, int, str]] = []
+        endpoints = []
         for item in routes.get("items", []):
             meta = item.get("metadata", {})
             namespace = meta.get("namespace", "default")
@@ -1038,7 +1037,7 @@ class CertificateAuditor:
                     self.process_blob(value, source, key_hint=f"spec.tls.{key}")
 
             if tls:
-                admitted_hosts: set[str] = set()
+                admitted_hosts = set()
                 spec_host = nested_get(item, "spec", "host", default="")
                 if spec_host:
                     admitted_hosts.add(spec_host)
@@ -1056,10 +1055,10 @@ class CertificateAuditor:
 
     def recursive_certificate_fields(
         self,
-        value: Any,
+        value,
         *,
-        path: str = "",
-    ) -> Iterable[tuple[str, str, bool]]:
+        path = "",
+    ) :
         if isinstance(value, dict):
             for key, child in value.items():
                 child_path = f"{path}.{key}" if path else key
@@ -1089,7 +1088,7 @@ class CertificateAuditor:
                 child_path = f"{path}[{index}]"
                 yield from self.recursive_certificate_fields(child, path=child_path)
 
-    def process_known_embedded_resources(self) -> None:
+    def process_known_embedded_resources(self) :
         resources = [
             (
                 "MutatingWebhookConfiguration",
@@ -1126,7 +1125,7 @@ class CertificateAuditor:
                 namespace = meta.get("namespace", "")
                 name = meta.get("name", "")
                 for path, raw_value, encoded in self.recursive_certificate_fields(item):
-                    blob: bytes | str | None = raw_value
+                    blob = raw_value
                     if encoded:
                         blob = b64decode_loose(raw_value)
                     source = {
@@ -1140,7 +1139,7 @@ class CertificateAuditor:
                     }
                     self.process_blob(blob, source, key_hint=path)
 
-    def process_csrs(self) -> None:
+    def process_csrs(self) :
         self.log("Scanning issued certificates and pending states in CertificateSigningRequests")
         csrs = self.oc_json(
             [
@@ -1195,13 +1194,13 @@ class CertificateAuditor:
                     f"CSR was denied; signer={signer}.",
                 )
 
-    def decode_node_field(self, value: str) -> str:
+    def decode_node_field(self, value) :
         try:
             return base64.b64decode(value.encode()).decode(errors="replace")
         except Exception:
             return ""
 
-    def merge_node_record(self, fields: list[str]) -> None:
+    def merge_node_record(self, fields) :
         if len(fields) != 16:
             self.add_finding(
                 "WARNING",
@@ -1254,7 +1253,7 @@ class CertificateAuditor:
         not_before = parse_openssl_date(not_before_raw)
         not_after = parse_openssl_date(not_after_raw)
         status, days_remaining = self.certificate_status(not_before, not_after)
-        lifetime_days: float | str = ""
+        lifetime_days = ""
         if not_before and not_after:
             lifetime_days = round((not_after - not_before).total_seconds() / 86400, 2)
         historical = (
@@ -1295,7 +1294,7 @@ class CertificateAuditor:
         self.records.append(record)
         self.evaluate_record(record)
 
-    def scan_nodes(self) -> None:
+    def scan_nodes(self) :
         if not self.args.scan_nodes:
             self.log("Node filesystem scan disabled")
             return
@@ -1356,7 +1355,7 @@ class CertificateAuditor:
                     "No certificate metadata was returned from the configured read-only node paths.",
                 )
 
-    def endpoint_from_url(self, value: str, description: str) -> tuple[str, int, str] | None:
+    def endpoint_from_url(self, value, description) :
         if not value:
             return None
         parsed = urllib.parse.urlparse(value if "://" in value else f"https://{value}")
@@ -1365,8 +1364,8 @@ class CertificateAuditor:
         port = parsed.port or 443
         return parsed.hostname, port, description
 
-    def collect_core_endpoints(self) -> list[tuple[str, int, str]]:
-        endpoints: list[tuple[str, int, str]] = []
+    def collect_core_endpoints(self) :
+        endpoints = []
         api_url = self.cluster_metadata.get("api_server_url", "")
         api_endpoint = self.endpoint_from_url(api_url, "OpenShift API")
         if api_endpoint:
@@ -1393,7 +1392,7 @@ class CertificateAuditor:
                 endpoints.append((host, 443, description))
         return endpoints
 
-    def scan_endpoint(self, host: str, port: int, description: str) -> None:
+    def scan_endpoint(self, host, port, description) :
         endpoint = f"{host}:{port}"
         self.log(f"Inspecting TLS endpoint {endpoint} ({description})")
         command = [
@@ -1470,11 +1469,11 @@ class CertificateAuditor:
             }
             self.inspect_certificate(block, source, index=index)
 
-    def scan_endpoints(self, route_endpoints: list[tuple[str, int, str]]) -> None:
+    def scan_endpoints(self, route_endpoints) :
         endpoints = self.collect_core_endpoints()
         if self.args.scan_route_endpoints:
             endpoints.extend(route_endpoints)
-        unique: dict[tuple[str, int], str] = {}
+        unique = {}
         for host, port, description in endpoints:
             unique.setdefault((host, port), description)
         endpoint_items = list(unique.items())
@@ -1483,11 +1482,11 @@ class CertificateAuditor:
         for (host, port), description in endpoint_items:
             self.scan_endpoint(host, port, description)
 
-    def aggregate_unique(self) -> list[dict[str, Any]]:
-        groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    def aggregate_unique(self) :
+        groups = defaultdict(list)
         for record in self.records:
             groups[record["fingerprint_sha256"]].append(record)
-        unique: list[dict[str, Any]] = []
+        unique = []
         for fingerprint, occurrences in groups.items():
             representative = sorted(
                 occurrences,
@@ -1526,7 +1525,7 @@ class CertificateAuditor:
         )
         return unique
 
-    def summary(self, unique: list[dict[str, Any]]) -> dict[str, Any]:
+    def summary(self, unique) :
         status_counts = Counter(record.get("status", "UNKNOWN") for record in unique)
         management_counts = Counter()
         for record in unique:
@@ -1544,7 +1543,7 @@ class CertificateAuditor:
             "management_counts": dict(management_counts),
         }
 
-    def write_csv(self, path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
+    def write_csv(self, path, rows, fieldnames) :
         with path.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
@@ -1560,11 +1559,11 @@ class CertificateAuditor:
 
     def write_markdown(
         self,
-        path: Path,
-        unique: list[dict[str, Any]],
-        summary: dict[str, Any],
-    ) -> None:
-        lines: list[str] = []
+        path,
+        unique,
+        summary,
+    ) :
+        lines = []
         meta = self.cluster_metadata
         lines.extend(
             [
@@ -1711,7 +1710,7 @@ class CertificateAuditor:
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         file_mode(path)
 
-    def write_reports(self) -> dict[str, Any]:
+    def write_reports(self) :
         if self.report_dir is None:
             raise AuditError("Report directory was not initialized")
         unique = self.aggregate_unique()
@@ -1806,7 +1805,7 @@ class CertificateAuditor:
 
         return summary
 
-    def execute(self) -> dict[str, Any]:
+    def execute(self) :
         self.preflight()
         self.create_report_directory()
         self.build_management_maps()
@@ -1825,7 +1824,7 @@ class CertificateAuditor:
         }
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() :
     parser = argparse.ArgumentParser(
         description="Read-only OpenShift certificate inventory and expiration audit"
     )
@@ -1836,18 +1835,39 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--openssl-binary", default="openssl")
     parser.add_argument("--warning-days", type=int, default=90)
     parser.add_argument("--critical-days", type=int, default=30)
-    parser.add_argument("--scan-nodes", action=argparse.BooleanOptionalAction, default=True)
+    scan_nodes_group = parser.add_mutually_exclusive_group()
+    scan_nodes_group.add_argument(
+        "--scan-nodes", dest="scan_nodes", action="store_true"
+    )
+    scan_nodes_group.add_argument(
+        "--no-scan-nodes", dest="scan_nodes", action="store_false"
+    )
+    parser.set_defaults(scan_nodes=True)
     parser.add_argument("--node-scan-script", required=True)
     parser.add_argument("--node-scan-timeout", type=int, default=420)
-    parser.add_argument("--scan-route-endpoints", action=argparse.BooleanOptionalAction, default=False)
+    route_scan_group = parser.add_mutually_exclusive_group()
+    route_scan_group.add_argument(
+        "--scan-route-endpoints", dest="scan_route_endpoints", action="store_true"
+    )
+    route_scan_group.add_argument(
+        "--no-scan-route-endpoints", dest="scan_route_endpoints", action="store_false"
+    )
+    parser.set_defaults(scan_route_endpoints=False)
     parser.add_argument("--max-route-endpoints", type=int, default=0)
     parser.add_argument("--endpoint-timeout", type=int, default=12)
     parser.add_argument("--cluster-query-timeout", type=int, default=600)
-    parser.add_argument(
+    permissions_group = parser.add_mutually_exclusive_group()
+    permissions_group.add_argument(
         "--require-complete-permissions",
-        action=argparse.BooleanOptionalAction,
-        default=True,
+        dest="require_complete_permissions",
+        action="store_true",
     )
+    permissions_group.add_argument(
+        "--no-require-complete-permissions",
+        dest="require_complete_permissions",
+        action="store_false",
+    )
+    parser.set_defaults(require_complete_permissions=True)
     args = parser.parse_args()
     if args.critical_days < 0 or args.warning_days < 0:
         parser.error("Expiration thresholds must be non-negative")
@@ -1856,7 +1876,7 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> int:
+def main() :
     args = parse_args()
     auditor = CertificateAuditor(args)
     try:

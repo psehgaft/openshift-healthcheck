@@ -65,8 +65,8 @@ A self-signed result is a classification, not automatically a security defect. O
 
 Run the playbook from a Linux or macOS administration host with:
 
-- Ansible Core 2.12 or later
-- Python 3.9 or later
+- Ansible Core 2.12 or later, using a Python version supported by that Ansible release
+- Certificate collector runtime: Python 3.6 or later (Python 3.9+ is recommended)
 - OpenShift CLI `oc` compatible with the cluster
 - OpenSSL
 - Network access to the OpenShift API
@@ -393,6 +393,23 @@ No generic Kubernetes audit can guarantee discovery of every certificate inside 
 For a complete enterprise PKI assessment, correlate this report with load-balancer, DNS, vault, HSM, service mesh, external registry, LDAP, database, and application-team inventories.
 
 ## 15. Troubleshooting
+
+### `SyntaxError: future feature annotations is not defined`
+
+This means an earlier collector release was executed with Python 3.6 or older.
+The corrected collector included in this package supports Python 3.6 and later and
+also avoids `argparse.BooleanOptionalAction`, which is unavailable before Python 3.9.
+
+Confirm the interpreter selected by the playbook:
+
+```bash
+ansible-playbook --version
+python3 --version
+ansible-playbook -i inventory.ini audit-certificates.yml -e python_binary=/usr/bin/python3
+```
+
+The playbook now defaults to the same Python interpreter used to launch Ansible.
+You can override `python_binary` when a different supported interpreter is required.
 
 ### `oc` permission failure
 
