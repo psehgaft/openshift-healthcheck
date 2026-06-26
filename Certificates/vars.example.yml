@@ -1,0 +1,17 @@
+---
+audit_output_root: "./output"
+audit_kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('', true) }}"
+audit_context: ""
+
+warning_days: 90
+critical_days: 30
+
+scan_nodes: true
+node_scan_timeout: 420
+
+scan_route_endpoints: false
+max_route_endpoints: 0
+endpoint_timeout: 12
+
+cluster_query_timeout: 600
+require_complete_permissions: true

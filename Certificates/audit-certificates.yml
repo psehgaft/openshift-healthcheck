@@ -1,0 +1,126 @@
+---
+- name: Audit OpenShift certificates and expiration dates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    audit_output_root: "{{ lookup('env', 'AUDIT_OUTPUT_ROOT') | default(playbook_dir ~ '/output', true) }}"
+    audit_kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('', true) }}"
+    audit_context: ""
+
+    warning_days: 90
+    critical_days: 30
+
+    # Node scanning is read-only, but it creates one temporary oc debug pod per node.
+    scan_nodes: true
+    node_scan_timeout: 420
+
+    # false inventories Route-embedded certificates and probes only API/console/OAuth.
+    # true also connects to every admitted TLS Route host to observe the active chain.
+    scan_route_endpoints: false
+    max_route_endpoints: 0
+    endpoint_timeout: 12
+
+    cluster_query_timeout: 600
+    require_complete_permissions: true
+
+    python_binary: python3
+    oc_binary: oc
+    openssl_binary: openssl
+    certificate_audit_result: {}
+
+  tasks:
+    - name: Validate threshold configuration
+      ansible.builtin.assert:
+        that:
+          - critical_days | int >= 0
+          - warning_days | int >= 0
+          - critical_days | int <= warning_days | int
+          - node_scan_timeout | int > 0
+          - endpoint_timeout | int > 0
+        fail_msg: Invalid certificate audit threshold or timeout configuration.
+
+    - name: Verify local audit helper files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/files/ocp_certificate_audit.py"
+        - "{{ playbook_dir }}/files/node_cert_scan.sh"
+      register: audit_helper_files
+
+    - name: Fail when an audit helper file is missing
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "Required audit helper is missing: {{ item.item }}"
+      loop: "{{ audit_helper_files.results }}"
+
+    - name: Build certificate audit command
+      ansible.builtin.set_fact:
+        audit_command:
+          - "{{ python_binary }}"
+          - "{{ playbook_dir }}/files/ocp_certificate_audit.py"
+          - --output-root
+          - "{{ audit_output_root }}"
+          - --node-scan-script
+          - "{{ playbook_dir }}/files/node_cert_scan.sh"
+          - --warning-days
+          - "{{ warning_days | string }}"
+          - --critical-days
+          - "{{ critical_days | string }}"
+          - --node-scan-timeout
+          - "{{ node_scan_timeout | string }}"
+          - --endpoint-timeout
+          - "{{ endpoint_timeout | string }}"
+          - --max-route-endpoints
+          - "{{ max_route_endpoints | string }}"
+          - --cluster-query-timeout
+          - "{{ cluster_query_timeout | string }}"
+          - --oc-binary
+          - "{{ oc_binary }}"
+          - --openssl-binary
+          - "{{ openssl_binary }}"
+
+    - name: Add optional kubeconfig and context arguments
+      ansible.builtin.set_fact:
+        audit_command: >-
+          {{
+            audit_command
+            + ((audit_kubeconfig | length > 0) | ternary(['--kubeconfig', audit_kubeconfig], []))
+            + ((audit_context | length > 0) | ternary(['--context', audit_context], []))
+            + ((scan_nodes | bool) | ternary(['--scan-nodes'], ['--no-scan-nodes']))
+            + ((scan_route_endpoints | bool) | ternary(['--scan-route-endpoints'], ['--no-scan-route-endpoints']))
+            + ((require_complete_permissions | bool) | ternary(['--require-complete-permissions'], ['--no-require-complete-permissions']))
+          }}
+
+    - name: Run read-only OpenShift certificate audit
+      ansible.builtin.command:
+        argv: "{{ audit_command }}"
+      register: certificate_audit_execution
+      changed_when: false
+      failed_when: false
+
+    - name: Parse audit result
+      ansible.builtin.set_fact:
+        certificate_audit_result: "{{ certificate_audit_execution.stdout | from_json }}"
+      when: certificate_audit_execution.stdout | trim | length > 0
+
+    - name: Fail when certificate audit did not complete
+      ansible.builtin.fail:
+        msg: >-
+          Certificate audit failed.
+          {{ certificate_audit_result.error | default(certificate_audit_execution.stderr | default('Unknown error')) }}
+      when:
+        - certificate_audit_execution.rc != 0 or certificate_audit_result.error is defined
+
+    - name: Display generated report location and summary
+      ansible.builtin.debug:
+        msg:
+          report_directory: "{{ certificate_audit_result.report_dir }}"
+          certificate_occurrences: "{{ certificate_audit_result.summary.certificate_occurrences }}"
+          unique_certificates: "{{ certificate_audit_result.summary.unique_certificates }}"
+          verified_self_signed: "{{ certificate_audit_result.summary.self_signed_unique }}"
+          status_counts: "{{ certificate_audit_result.summary.status_counts }}"
+          finding_counts: "{{ certificate_audit_result.summary.finding_counts }}"
