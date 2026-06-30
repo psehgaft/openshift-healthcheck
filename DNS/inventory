@@ -1,0 +1,12 @@
+[masters]
+master0 ansible_host=
+master1 ansible_host=
+master2 ansible_host=
+
+[workers]
+worker0 ansible_host=
+worker1 ansible_host=
+
+[all:vars]
+ansible_user=core
+ansible_ssh_private_key_file=~/.ssh/id_rsa

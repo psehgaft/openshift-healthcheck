@@ -1,0 +1,166 @@
+---
+- name: Validate OpenShift DNS
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+
+    expected_domain: example.com
+
+  tasks:
+
+###############################################################
+# Hostname
+###############################################################
+
+    - name: Get hostname
+      command: hostname
+      register: hostname_short
+      changed_when: false
+
+    - name: Get FQDN
+      command: hostname -f
+      register: fqdn
+      changed_when: false
+      ignore_errors: yes
+
+###############################################################
+# resolv.conf
+###############################################################
+
+    - name: Show resolv.conf
+      command: cat /etc/resolv.conf
+      register: resolv
+      changed_when: false
+
+    - debug:
+        msg: "{{ resolv.stdout_lines }}"
+
+###############################################################
+# DNS Servers
+###############################################################
+
+    - name: Obtain configured DNS servers
+      shell: "grep ^nameserver /etc/resolv.conf | awk '{print $2}'"
+      register: dns_servers
+      changed_when: false
+
+    - debug:
+        var: dns_servers.stdout_lines
+
+###############################################################
+# Ping DNS
+###############################################################
+
+    - name: Verify DNS server is reachable
+      command: ping -c2 {{ item }}
+      register: ping_dns
+      loop: "{{ dns_servers.stdout_lines }}"
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Forward lookup localhost
+###############################################################
+
+    - name: Resolve own hostname
+      command: getent hosts {{ inventory_hostname }}
+      register: getent_inventory
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Resolve FQDN
+###############################################################
+
+    - name: Resolve FQDN
+      command: getent hosts {{ fqdn.stdout }}
+      register: getent_fqdn
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# dig hostname
+###############################################################
+
+    - name: dig hostname
+      command: dig +short {{ fqdn.stdout }}
+      register: dig_forward
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Reverse Lookup
+###############################################################
+
+    - name: Reverse lookup
+      command: dig +short -x {{ ansible_default_ipv4.address }}
+      register: reverse
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# nslookup
+###############################################################
+
+    - name: nslookup fqdn
+      command: nslookup {{ fqdn.stdout }}
+      register: nslookup_output
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Validate all inventory hosts
+###############################################################
+
+    - name: Resolve every node
+      command: getent hosts {{ item }}
+      register: inventory_resolution
+      loop: "{{ groups['all'] }}"
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Validate Reverse Lookup
+###############################################################
+
+    - name: Reverse lookup validation
+      command: host {{ ansible_default_ipv4.address }}
+      register: host_reverse
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Validate Reverse Lookup
+###############################################################
+
+    - name: Resolve every inventory hostname
+      command: dig +short {{ hostvars[item].ansible_hostname }}
+      loop: "{{ groups['all'] }}"
+      register: dnscheck
+      ignore_errors: yes
+      changed_when: false
+
+###############################################################
+# Summary
+###############################################################
+
+    - debug:
+
+        msg:
+          Hostname: "{{ hostname_short.stdout }}"
+          FQDN: "{{ fqdn.stdout | default('FAILED') }}"
+          IP: "{{ ansible_default_ipv4.address }}"
+          DNS Servers: "{{ dns_servers.stdout_lines }}"
+          Forward Lookup: "{{ dig_forward.stdout | default('FAILED') }}"
+          Reverse Lookup: "{{ reverse.stdout | default('FAILED') }}"
+          nslookup: "{{ nslookup_output.stdout_lines | default([]) }}"
+   
+   - name: Print results
+      debug:
+        msg: |
+          {{ inventory_hostname }}
+          {% for r in dnscheck.results %}
+          {{ r.item }} -> {{ r.stdout | default('FAILED') }}
+          {% endfor %}
