@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================
 #  OCP 4.18 - Bastion Tools Pre-Check Script
-#  Cluster  : corenokia
-#  Bastion  : vmbastionpan
+#  Cluster  : psehgaft
+#  Bastion  : bastion
 #  Valida herramientas requeridas en el nodo bastion
 # ============================================================
 
