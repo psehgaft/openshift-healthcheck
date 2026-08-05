@@ -227,7 +227,7 @@ analyze_namespaces() {
 basic_analysis() {
   log "Running basic analysis"
   local co_degraded nodes_notready mcp_bad pending_pvc svc_no_ep evicted unavailable_deployments
-  co_degraded=$(oc get co --no-headers 2>/dev/null | awk '$3!="False" || $4!="False" || $5!="True" {c++} END{print c+0}')
+  co_degraded=$(oc get co --no-headers 2>/dev/null | awk '$3!="True" || $4!="False" || $5!="False" {c++} END{print c+0}')
   nodes_notready=$(oc get nodes --no-headers 2>/dev/null | awk '$2 !~ /Ready/ || $2 ~ /NotReady/ {c++} END{print c+0}')
   mcp_bad=$(oc get mcp --no-headers 2>/dev/null | awk '$3!="True" || $4!="False" || $5!="False" {c++} END{print c+0}')
   pending_pvc=$(oc get pvc -A --no-headers 2>/dev/null | awk '$4!="Bound" {c++} END{print c+0}')
