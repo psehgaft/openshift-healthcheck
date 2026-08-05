@@ -230,7 +230,7 @@ basic_analysis() {
   co_degraded=$(oc get co --no-headers 2>/dev/null | awk '$3!="False" || $4!="False" || $5!="True" {c++} END{print c+0}')
   nodes_notready=$(oc get nodes --no-headers 2>/dev/null | awk '$2 !~ /Ready/ || $2 ~ /NotReady/ {c++} END{print c+0}')
   mcp_bad=$(oc get mcp --no-headers 2>/dev/null | awk '$3!="True" || $4!="False" || $5!="False" {c++} END{print c+0}')
-  pending_pvc=$(oc get pvc -A --no-headers 2>/dev/null | awk '$4!="Bound" {c++} END{print c+0}')
+  pending_pvc=$(oc get pvc -A --no-headers 2>/dev/null | awk '$3!="Bound" {c++} END{print c+0}')
   svc_no_ep=$(oc get endpoints -A --no-headers 2>/dev/null | awk '$3=="<none>" {c++} END{print c+0}')
   evicted=$(grep -i "Evicted\|ephemeral-storage" "$CSV_DIR/problem-pods.tsv" 2>/dev/null | wc -l | tr -d ' ')
   unavailable_deployments=$(oc get deploy -A -o json 2>/dev/null | jq '[.items[] | select((.status.availableReplicas // 0) < (.spec.replicas // 1))] | length' 2>/dev/null || echo 0)
